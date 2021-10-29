@@ -5,27 +5,24 @@ export class Transform {
         this.from = document.getElementById('from');
         this.to = document.getElementById('to');
         this.conv = (pos) => { return pos };
+        this.origin = [0, 0];
     }
 
     get t() {
         return Date.now()
     }
 
-    set origin(ori) {
-        this.ori = ori;
-    }
-
     set func(func) {
         this.conv = func;
     }
 
-    drawPoint(point, from = true, to = true) {
+    drawPoint(point, from = true, to = true, opt) {
         if (from) {
             drawPoint(this.from, point);
         }
         if (to) {
             const transPoint = this.convert(point);
-            drawPoint(this.to, transPoint);
+            drawPoint(this.to, transPoint, opt);
             return transPoint
         }
     }
@@ -44,7 +41,7 @@ export class Transform {
 
     convert(point) {
         const [x, y] = point;
-        const [oX, oY] = this.ori;
+        const [oX, oY] = this.origin;
         const dPoint = [x - oX, y - oY];
         const [convX, convY] = this.conv(dPoint);
         return [convX + oX, convY + oY]

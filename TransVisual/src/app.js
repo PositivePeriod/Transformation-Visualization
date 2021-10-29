@@ -1,4 +1,4 @@
-import { drawPoint, getPoint } from "./drawUtil.js";
+import { drawPoint, getPoint, hsla } from "./drawUtil.js";
 import { functionDict } from "./function.js";
 import { Paint } from "./paint.js";
 import { Throttle } from "./throttle.js";
@@ -41,7 +41,56 @@ class App {
         document.addEventListener('keydown', function (event) {
             if (event.ctrlKey && event.key === 'z') { this.paint.undo(); }
         }.bind(this));
-        // setInterval(function () { this.trans.reconvertAll(); }.bind(this), 100);
+
+        this.defaultPoint();
+    }
+
+    defaultLine() {
+        const [x0, y0] = this.paint.trans.origin;
+        const convert = ([x, y]) => [x + x0, y + y0]
+        const gridSize = 50;
+        const num = 20
+        const length = 1000
+        const accuray = 0.3
+        for (let i = -num; i < num + 1; i++) {
+            let [x1, y1] = convert([gridSize * i, -length / 2]);
+            let [x2, y2] = convert([gridSize * i, length / 2]);
+            let r = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+            let n = Math.round(r * accuray);
+            this.paint.drawStart([x1, y1]);
+            [...Array(n).keys()]
+                .map(i => [x1 * (n - i - 1) / n + x2 * (i + 1) / n, y1 * (n - i - 1) / n + y2 * (i + 1) / n])
+                .forEach(pt => { this.paint.draw(pt); });
+            this.paint.drawEnd([x2, y2]);
+        }
+        for (let i = -num; i < num + 1; i++) {
+            let [x1, y1] = convert([-length / 2, gridSize * i]);
+            let [x2, y2] = convert([length / 2, gridSize * i]);
+            let r = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+            let n = Math.round(r * accuray);
+            this.paint.drawStart([x1, y1]);
+            [...Array(n).keys()]
+                .map(i => [x1 * (n - i - 1) / n + x2 * (i + 1) / n, y1 * (n - i - 1) / n + y2 * (i + 1) / n])
+                .forEach(pt => { this.paint.draw(pt); });
+            this.paint.drawEnd([x2, y2]);
+        }
+    }
+
+    defaultPoint() {
+        const [x0, y0] = this.paint.trans.origin;
+        const convert = ([x, y]) => [x + x0, y + y0]
+        const gridSize = 4;
+        const num = 100
+        for (let i = -num; i < num + 1; i++) {
+            for (let j = -num; j < num + 1; j++) {
+                let point = convert([gridSize * i, gridSize * j]);
+                let h = (i*2+j*3)*2 % 360
+                let opt = { color: hsla(h, 100, 50, 0.1), size: 3 };
+                this.paint.trans.drawPoint(point, true, true, opt);
+                var [x,y] = point;
+                this.paint.lines.push([[x,y,opt]]);
+            }
+        }
     }
 
     mouseDown(event) {
@@ -142,10 +191,8 @@ class App {
         const canvasSize = [size, size];
         [this.from.width, this.from.height] = canvasSize;
         [this.to.width, this.to.height] = canvasSize;
-        if (this.fixOrigin.checked) {
-            const center = [canvasSize[0] / 2, canvasSize[1] / 2];
-            this.paint.origin = center;
-        }
+        if (this.fixOrigin.checked) { this.paint.trans.origin = [canvasSize[0] / 2, canvasSize[1] / 2]; }
+        this.paint.drawForceToEnd();
         this.paint.redraw();
     }
 

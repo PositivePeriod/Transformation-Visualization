@@ -51,12 +51,36 @@ function sincos(point) {
     return [x + A * Math.sin(y / T), y + A * Math.cos(x / T)]
 }
 
+function onlyX(point) {
+    return [point[0], 0]
+}
+
+function lazer(point) {
+    const T = 100;
+    const [x, y] = point;
+    return [x * Math.cos(y / T), y * Math.sin(x / T)]
+}
+
+function pole(point) {
+    const [x, y] = point;
+    return [x ** 0.5, y + 10 / y]
+}
+
+function hole(point) {
+    const [x, y] = point;
+    return [x, Math.exp(y/x)]
+}
+
 export const functionDict = new Map([
     ['Identity', identity],
     ['Inverse', inverse],
     ['Mirror', mirror],
+    ['Rotate', rotate],
     ['Circular Mirror', circularMirror],
     ['Circular Mirror2', circularMirror2],
-    ['Rotate', rotate],
-    ['Sine and Cosine', sincos]
+    ['Sine and Cosine', sincos],
+    ["Only X", onlyX],
+    ["Lazer", lazer],
+    ["Pole", pole],
+    ["Hole", hole]
 ]);
