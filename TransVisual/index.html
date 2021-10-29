@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="title" content="TransVisual" />
     <meta name="author" content="Jeuk Hwang">
-    <meta name="description" content="Transformation Visualization">
+    <meta name="description" content="Transformation Visualization inspired by Jiwon Lee">
     <title>TransVisual</title>
 
     <!--style-->
@@ -15,11 +15,24 @@
 </head>
 
 <body>
-    <div id="frame">
-        <canvas id="from"></canvas> 
+    <div id="optionFrame">
+        Draw Method Option : <select name="Draw Method" id="drawOption">
+            <option value="buttonDraw">Click and Drag</option>
+            <option value="toggleDraw">Click and Move and Click to end</option>
+            <option value="clickDrawPoint">Click to draw point and Rightclick to end</option>
+            <option value="clickDrawLine">Click to draw line and Rightclick to end</option>
+        </select>
+        Transformation Option : <select name="Transformation" id="transOption"> </select>
+        <br>
+        <button id="undo">Undo</button>
+        <label><input id="fixOrigin" type="checkbox" checked> Fix the center of the canvas to the origin</label>
+    </div>
+    <div id="canvasFrame">
+        <canvas id="from"></canvas>
         <canvas id="to"></canvas>
     </div>
     <script type="module" type="text/javascript" src="./src/app.js"></script>
+    <div>Greatly inspired by Jiwon Lee</div>
 </body>
 
 </html>

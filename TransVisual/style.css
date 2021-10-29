@@ -14,7 +14,14 @@ canvas {
     width: 50%;
 } */
 
-#frame {
+#optionFrame {
+    margin: 5px;
+    padding: 5px;
+}
+
+#canvasFrame {
+    width: auto;
+    height: auto;
     background: gray;
 }
 #from {

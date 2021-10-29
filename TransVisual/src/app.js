@@ -1,96 +1,156 @@
-import { getPos } from "./drawUtil.js";
-import { Transform } from "./transform.js";
+import { drawPoint, getPoint } from "./drawUtil.js";
+import { functionDict } from "./function.js";
+import { Paint } from "./paint.js";
+import { Throttle } from "./throttle.js";
+
 
 class App {
     constructor() {
-        this.frame = document.getElementById('frame');
         this.from = document.getElementById('from');
         this.to = document.getElementById('to');
-        this.trans = new Transform(this.from, this.to);
 
-        // this.resizeTimeout = null; this.resizeFPS = 30;
-        // window.addEventListener('resize', this.resizeThrottle.bind(this));
-        // this.resize();
-        const canvasWidth = 700;
-        const canvasHeight = 700;
-        this.from.width = canvasWidth;
-        this.from.height = canvasHeight;
-        this.to.width = canvasWidth;
-        this.to.height = canvasHeight;
+        this.paint = new Paint();
 
-        this.lines = []; this.line = null;
+        this.fixOrigin = document.getElementById('fixOrigin');
+        this.fixOrigin.addEventListener('change', this.resize.bind(this));
 
-        this.isMouseDown = false;
-        this.from.addEventListener('mousedown', this.updateMouseDown.bind(this));
-        this.from.addEventListener('mouseup', this.updateMouseUp.bind(this));
-        this.updateTimeout = null; this.updateFPS = 30;
-        this.from.addEventListener('mousemove', this.updateThrottle.bind(this));
+        this.resizeThrottle = new Throttle(30, false);
+        window.addEventListener('resize', this.resize.bind(this));
+        this.resize();
+
+        this.clickDrawAccuracy = 0.3; // Real number between 0 < <= 1 
+        this.mode = 'buttonDraw';
+        this.from.addEventListener('mousedown', this.mouseDown.bind(this));
+        this.from.addEventListener('mousemove', this.mouseMove.bind(this));
+        this.from.addEventListener('mouseup', this.mouseUp.bind(this));
+        this.from.addEventListener('click', this.leftClick.bind(this));
+        this.from.addEventListener('contextmenu', this.rightClick.bind(this)); // for preventDefault
+        document.getElementById('drawOption').addEventListener('change', (event) => {
+            this.paint.drawForceToEnd(); this.mode = event.target.value;
+        });
+        const transOption = document.getElementById('transOption');
+        functionDict.forEach((func, funcName) => {
+            const opt = document.createElement('option');
+            [opt.value, opt.innerHTML] = [funcName, funcName];
+            transOption.appendChild(opt);
+        })
+        transOption.addEventListener('change', function (event) {
+            this.paint.drawForceToEnd(); this.paint.funcName = event.target.value; this.paint.redraw(false, true);
+        }.bind(this));
+        document.getElementById('undo').addEventListener('click', this.paint.undo.bind(this.paint))
+        document.addEventListener('keydown', function (event) {
+            if (event.ctrlKey && event.key === 'z') { this.paint.undo(); }
+        }.bind(this));
+        // setInterval(function () { this.trans.reconvertAll(); }.bind(this), 100);
+    }
+
+    mouseDown(event) {
+        const point = getPoint(event);
+        let convPoint;
+        switch (this.mode) {
+            case 'buttonDraw':
+                convPoint = this.paint.drawStart(point);
+                this.log('MouseDown', point, convPoint);
+                break;
+        }
+    }
+
+    mouseMove(event) {
+        const point = getPoint(event);
+        let convPoint;
+        switch (this.mode) {
+            case 'buttonDraw':
+            case 'toggleDraw':
+                convPoint = this.paint.drawMove(point);
+                this.log('MouseMove', point, convPoint);
+                break;
+        }
+    }
+
+    mouseUp(event) {
+        const point = getPoint(event);
+        let convPoint;
+        switch (this.mode) {
+            case 'buttonDraw':
+                convPoint = this.paint.drawEnd(point);
+                this.log('MouseUp', point, convPoint);
+                break;
+        }
+    }
+
+    leftClick(event) {
+        const point = getPoint(event);
+        let convPoint;
+        switch (this.mode) {
+            case 'toggleDraw':
+                convPoint = !this.paint.canPaint ? this.paint.drawStart(point) : this.paint.drawEnd(point);
+                this.log('LeftClick', point, convPoint);
+                break;
+            case 'clickDrawPoint':
+                if (!this.paint.canPaint) {
+                    convPoint = this.paint.drawStart(point);
+                    this.log('LeftClick', point, convPoint);
+                } else {
+                    convPoint = this.paint.drawMove(point);
+                    this.log('LeftClick', point, convPoint);
+                }
+                break;
+            case 'clickDrawLine':
+                if (!this.paint.canPaint) {
+                    convPoint = this.paint.drawStart(point);
+                    this.log('LeftClick', point, convPoint);
+                } else {
+                    let [x1, y1] = this.paint.line[this.paint.line.length - 1]; // lastPoint
+                    let [x2, y2] = point;
+                    let r = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+                    let n = Math.round(r * this.clickDrawAccuracy);
+                    [...Array(n).keys()]
+                        .map(i => [x1 * (n - i - 1) / n + x2 * (i + 1) / n, y1 * (n - i - 1) / n + y2 * (i + 1) / n])
+                        .forEach(pt => { this.paint.draw(pt); })
+                    this.log('LeftClick', point, this.paint.trans.convert(point));
+                }
+                break;
+        }
+    }
+
+    rightClick(event) {
+        event.preventDefault();
+        const point = getPoint(event);
+        let convPoint;
+        switch (this.mode) {
+            case 'clickDrawPoint':
+            case 'clickDrawLine':
+                if (this.paint.canPaint) {
+                    let lastPoint = this.paint.line[this.paint.line.length - 1];
+                    convPoint = this.paint.drawEnd(lastPoint);
+                    this.log('RightClick', point, convPoint);
+                }
+                break;
+        }
     }
 
     resizeThrottle() {
         if (!this.resizeTimeout) {
-            const time = Math.round(1000 / this.resizeFPS)
+            const time = Math.round(1000 / this.resizeFPS);
             this.resizeTimeout = setTimeout(function () { this.resizeTimeout = null; this.resize(); }.bind(this), time);
         }
     }
 
     resize() {
-        const ratio = 0.3;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const canvasWidth = Math.round(width * ratio);
-        const canvasHeight = Math.round(height * ratio);
-        console.log(width, height, canvasWidth, canvasHeight);
-        this.from.width = canvasWidth;
-        this.from.height = canvasHeight;
-        this.to.width = canvasWidth;
-        this.to.height = canvasHeight;
+        const ratio = 0.4;
+        const size = Math.max(Math.round(window.innerWidth * ratio), Math.round(window.innerHeight * ratio))
+        const canvasSize = [size, size];
+        [this.from.width, this.from.height] = canvasSize;
+        [this.to.width, this.to.height] = canvasSize;
+        if (this.fixOrigin.checked) {
+            const center = [canvasSize[0] / 2, canvasSize[1] / 2];
+            this.paint.origin = center;
+        }
+        this.paint.redraw();
     }
 
-    updateThrottle(event) {
-        if (!this.updateTimeout) {
-            console.log('update');
-            const time = Math.round(1000 / this.updateFPS);
-            this.updateTimeout = setTimeout(function () { this.updateTimeout = null; }.bind(this), time);
-            this.updateCanvas(event);
-        }
-    }
-
-    updateMouseDown(event) {
-        console.log('down');
-        this.isMouseDown = true;
-        const pos = getPos(event);
-        this.trans.drawPoint(pos);
-        this.line = [pos];
-    }
-
-    updateMouseUp(event) {
-        console.log('down');
-        this.isMouseDown = false
-        const pos = getPos(event);
-        const lastPos = this.line[this.line.length - 1];
-        if (JSON.stringify(lastPos) !== JSON.stringify(pos)) {
-            this.line.push(pos);
-            this.trans.drawLine(lastPos, pos)
-        }
-        this.trans.drawPoint(lastPos, pos);
-        this.lines.push(this.line); this.line = null;
-    }
-
-    updateCanvas(event) {
-        if (!this.isMouseDown) { return }
-        const pos = getPos(event);
-        if (this.line === null) {
-            this.line = [];
-            this.trans.drawPoint(pos);
-        }
-        else {
-            const lastPos = this.line[this.line.length - 1];
-            if (JSON.stringify(lastPos) === JSON.stringify(pos)) { return }
-            this.trans.drawLine(lastPos, pos);
-        }
-        console.log('move', pos);
-        this.line.push(pos);
+    log(name, point, convPoint) {
+        // if (convPoint) { console.log(`${name} : ${point} -> ${convPoint.map(x => Math.round(x))}`); }
     }
 }
 

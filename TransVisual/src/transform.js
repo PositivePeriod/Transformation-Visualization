@@ -1,58 +1,52 @@
 import { drawPoint, drawLine } from "./drawUtil.js";
 
 export class Transform {
-    constructor(from, to) {
-        this.from = from;
-        this.to = to;
+    constructor() {
+        this.from = document.getElementById('from');
+        this.to = document.getElementById('to');
+        this.conv = (pos) => { return pos };
     }
 
     get t() {
         return Date.now()
     }
 
-    setOrigin(origin) {
-        const [x, y] = origin;
+    set origin(ori) {
+        this.ori = ori;
     }
 
-    drawPoint(pos) {
-        drawPoint(this.from, pos);
-        const transPos = this.convert(pos);
-        drawPoint(this.to, transPos);
+    set func(func) {
+        this.conv = func;
     }
 
-    drawLine(pos1, pos2) {
-        drawLine(this.from, pos1, pos2);
-        const transPos1 = this.convert(pos1);
-        const transPos2 = this.convert(pos2);
-        drawLine(this.to, transPos1, transPos2);
+    drawPoint(point, from = true, to = true) {
+        if (from) {
+            drawPoint(this.from, point);
+        }
+        if (to) {
+            const transPoint = this.convert(point);
+            drawPoint(this.to, transPoint);
+            return transPoint
+        }
     }
 
-    convert(pos) {
-        // return this.inverse(pos)
-        return this.circularMirror(pos)
-        // return this.strange1(pos)
+    drawLine(point1, point2, from = true, to = true) {
+        if (from) {
+            drawLine(this.from, point1, point2);
+        }
+        if (to) {
+            const transPoint1 = this.convert(point1);
+            const transPoint2 = this.convert(point2);
+            drawLine(this.to, transPoint1, transPoint2);
+            return [transPoint1, transPoint2]
+        }
     }
 
-    inverse(pos) {
-        const [x, y] = pos;
-        return [y, x]
-    }
-
-    circularMirror(pos) {
-        const c = 100000;
-        const [x, y] = pos;
-        const angle = Math.atan2(y, x);
-        const r2 = x ** 2 + y ** 2;
-        const invR = r2 ** (-0.5);
-        const transX = c * Math.cos(angle) * invR;
-        const transY = c * Math.sin(angle) * invR;
-        return [transX, transY]
-    }
-
-    strange1(pos) {
-        const A = 100;
-        const f = 10;
-        const [x, y] = pos;
-        return [x, y + A * Math.cos(f * x)]
+    convert(point) {
+        const [x, y] = point;
+        const [oX, oY] = this.ori;
+        const dPoint = [x - oX, y - oY];
+        const [convX, convY] = this.conv(dPoint);
+        return [convX + oX, convY + oY]
     }
 }
