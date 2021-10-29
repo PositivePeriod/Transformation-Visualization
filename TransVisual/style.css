@@ -1,0 +1,26 @@
+/* * {
+    margin: 0%;
+    padding: 0%;
+}
+body, div, canvas {
+    margin: 0%;
+    padding: 0%;
+    width:100%; 
+    height:90%;
+}
+
+canvas {
+    width: calc(50% - 4px);
+    width: 50%;
+} */
+
+#frame {
+    background: gray;
+}
+#from {
+    background: rgb(218, 140, 140);
+}
+
+#to {
+    background: rgb(125, 125, 199);
+}

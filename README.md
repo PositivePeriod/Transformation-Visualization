@@ -1,2 +1,2 @@
 # Transformation-Visualization
-inspired by Jiwon Lee
+Transformation Visualization inspired by Jiwon Lee
